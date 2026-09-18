@@ -1,0 +1,6 @@
+Warehouse_ID,Location,Storage_Capacity,Current_Inventory,Safety_Stock,Operating_Cost
+W01,Chennai,30549,9687,2180,27952.55
+W02,Coimbatore,19880,5265,2782,16542.54
+W03,Bengaluru,31225,10021,1277,27985.68
+W04,Hyderabad,19809,5143,2398,22402.0
+W05,Pune,28596,5542,2425,12463.99

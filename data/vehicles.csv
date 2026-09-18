@@ -1,0 +1,13 @@
+Vehicle_ID,Vehicle_Class,Transport_Mode,Payload_Capacity_kg,Volume_Capacity_m3,EF_Empty_kgCO2_per_km,EF_Full_kgCO2_per_km,Cost_per_km,Avg_Speed_Highway_kmph,Avg_Speed_Urban_kmph,Max_Driving_Hours_per_Day,Range_km,Hazmat_Certified,Temperature_Controlled,Home_Depot
+V01,LCV 3.5t,Truck_Diesel,2800,14.0,0.185,0.272,18.5,58,24,9,1100,NO,NO,W04
+V02,LCV 3.5t,Truck_Diesel,2800,14.0,0.185,0.272,18.5,58,24,9,1100,NO,NO,W05
+V03,Rigid 12t,Truck_Diesel,8200,38.0,0.62,0.952,34.0,55,22,9,1100,NO,NO,W01
+V04,Rigid 12t,Truck_Diesel,8200,38.0,0.62,0.952,34.0,55,22,9,1100,NO,NO,W03
+V05,Rigid 16t,Truck_Diesel,11500,46.0,0.735,1.118,41.0,55,21,9,1100,YES,NO,W01
+V06,Articulated 28t,Truck_Diesel,21000,82.0,0.905,1.486,58.0,52,18,9,1100,YES,NO,W02
+V07,Articulated 28t,Truck_Diesel,21000,82.0,0.905,1.486,58.0,52,18,9,1100,NO,NO,W03
+V08,eLCV 3.5t,Truck_Electric,2500,13.5,0.052,0.086,22.0,52,26,7,320,NO,NO,W05
+V09,eRigid 12t,Truck_Electric,7600,36.0,0.188,0.302,44.0,48,22,7,320,NO,NO,W05
+V10,eRigid 12t,Truck_Electric,7600,36.0,0.188,0.302,44.0,48,22,7,320,NO,NO,W02
+V11,Reefer Rigid 12t,Truck_Diesel,7400,32.0,0.744,1.166,49.0,53,21,9,1100,NO,YES,W02
+V12,Flatbed 16t,Truck_Diesel,11800,0.0,0.735,1.118,39.0,55,21,9,1100,YES,NO,W03

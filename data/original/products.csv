@@ -1,0 +1,16 @@
+Product_ID,Product_Name,Product_Type,Base_Unit,Unit_Weight_kg
+P001,Copper Wire,raw_material,kg,8.9
+P002,Aluminum Sheet,raw_material,kg,2.7
+P003,Polymer Resin,raw_material,kg,1.2
+P004,Printed Circuit Board,component,unit,0.18
+P005,Microcontroller,component,unit,0.02
+P006,Temperature Sensor,component,unit,0.03
+P007,Connector Set,component,unit,0.05
+P008,Fastener Kit,component,unit,0.08
+P009,Bearing Set,component,unit,0.12
+P010,Power Module,component,unit,0.07
+P011,Control Unit,finished_good,unit,1.8
+P012,Sensor Module,finished_good,unit,0.7
+P013,Industrial Gateway,finished_good,unit,2.4
+P014,Motor Controller,finished_good,unit,2.1
+P015,Smart Meter,finished_good,unit,1.4

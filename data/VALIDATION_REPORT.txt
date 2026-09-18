@@ -1,0 +1,35 @@
+======================================================================
+SU-02 AUGMENTATION VALIDATION REPORT
+======================================================================
+
+[D1] cost vs CO2 correlation, ground modes : +0.2080
+     target < 0.80  ->  PASS
+     same, including Air                     : +0.9022  (air is both costly and dirty; expected)
+     cost coeff range : 0.0259 - 1.2034
+     CO2  coeff range : 0.0191 - 0.8729
+
+     non-dominated options per lane on (cost, CO2, time):
+       mean 2.14 | median 2 | lanes with >=2 : 88% | max 3
+     PASS (a real trade-off needs >=2 non-dominated options on most lanes)
+       Truck_Diesel     n=169  cost~0.0763  co2~0.1070  days~2.0
+       Rail             n=108  cost~0.0356  co2~0.0280  days~3.8
+       Air              n=44   cost~0.9091  co2~0.5962  days~2.0
+       Truck_Electric   n=68   cost~0.0993  co2~0.0345  days~1.2
+
+[D2] transit days distinct values : [np.int64(1), np.int64(2), np.int64(3), np.int64(4), np.int64(5), np.int64(6)]
+     PASS
+
+[D3] suppliers connected : 15/15  orphans=[]
+     customers reachable : 24/24  unreachable=[]
+     demand reachable    : 557/557 = 100%
+     PASS
+
+[D4] Inventory_Risk classes : {'LOW': 1323, 'MEDIUM': 1263, 'HIGH': 891, 'CRITICAL': 573}
+     Shipment Status classes : {'DELIVERED': 388, 'DELIVERED_LATE': 149, 'IN_TRANSIT': 33, 'DELAYED': 13, 'CANCELLED': 9, 'EXCEPTION': 8}
+     Route_Status classes    : {'AVAILABLE': 348, 'CONGESTED': 25, 'CLOSED': 16}
+     PASS
+
+[D5] twin snapshot rebuilt with Product_ID and reconciled timestamp : PASS
+
+network size : 389 routes over 168 lanes, 48 nodes
+======================================================================

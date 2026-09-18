@@ -1,0 +1,5 @@
+Factory_ID,Location,Production_Capacity,Current_Inventory,Daily_Demand,Safety_Stock
+F01,Chennai,1238,1491,99,363
+F02,Coimbatore,785,2708,142,452
+F03,Bengaluru,818,1029,152,322
+F04,Hyderabad,1093,2818,82,251

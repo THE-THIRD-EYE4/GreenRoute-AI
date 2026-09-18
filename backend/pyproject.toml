@@ -1,0 +1,35 @@
+[project]
+name = "dispatch"
+version = "0.1.0"
+description = "SU-02 Dispatch: sustainable supply-chain optimization and digital-twin console"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "pandas>=2.1",
+    "numpy>=1.26",
+    "networkx>=3.2",
+    "pulp>=2.8",
+    "ortools>=9.9",
+    "pymoo>=0.6.1",
+    "scipy>=1.11",
+    "statsmodels>=0.14",
+    "scikit-learn>=1.4",
+    "simpy>=4.1",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "pydantic>=2.6",
+    "sqlalchemy>=2.0",
+    "haversine>=2.8",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+]
+
+[tool.setuptools.packages.find]
+include = ["dispatch*"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"

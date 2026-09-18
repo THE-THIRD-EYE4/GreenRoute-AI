@@ -1,0 +1,16 @@
+Product_ID,Product_Name,Product_Type,Unit_Weight_kg,Length_cm,Width_cm,Height_cm,Volume_cm3,Volume_m3,Fragility,ESD_Sensitive,Stackable,Max_Stack_Height,Hazmat_Class,Temperature_Controlled,Units_per_Carton
+P001,Copper Wire,raw_material,8.9,31.7,24.2,27.7,21249.8,0.02125,Standard,NO,YES,6,NONE,NO,23
+P002,Aluminum Sheet,raw_material,2.7,20.0,16.8,15.6,5241.6,0.005242,Standard,NO,YES,6,NONE,NO,12
+P003,Polymer Resin,raw_material,1.2,17.8,11.1,10.8,2133.9,0.002134,Standard,NO,YES,6,UN3082,NO,45
+P004,Printed Circuit Board,component,0.18,14.0,9.1,7.8,993.7,0.000994,Fragile,YES,YES,4,NONE,NO,34
+P005,Microcontroller,component,0.02,7.1,4.5,3.5,111.8,0.000112,Fragile,YES,YES,4,NONE,NO,28
+P006,Temperature Sensor,component,0.03,7.2,4.7,6.0,203.0,0.000203,Fragile,YES,YES,4,NONE,NO,24
+P007,Connector Set,component,0.05,7.4,5.7,6.9,291.0,0.000291,Fragile,NO,YES,4,NONE,NO,57
+P008,Fastener Kit,component,0.08,10.7,7.6,4.9,398.5,0.000398,Fragile,NO,YES,4,NONE,NO,62
+P009,Bearing Set,component,0.12,12.6,8.8,6.6,731.8,0.000732,Fragile,NO,YES,4,NONE,NO,57
+P010,Power Module,component,0.07,8.2,6.8,6.9,384.7,0.000385,Fragile,YES,YES,4,NONE,NO,79
+P011,Control Unit,finished_good,1.8,22.8,19.0,18.4,7970.9,0.007971,Fragile,NO,NO,3,NONE,NO,34
+P012,Sensor Module,finished_good,0.7,18.1,12.4,15.9,3568.6,0.003569,Fragile,NO,NO,3,NONE,NO,10
+P013,Industrial Gateway,finished_good,2.4,24.3,18.0,20.4,8923.0,0.008923,Fragile,NO,NO,3,NONE,NO,67
+P014,Motor Controller,finished_good,2.1,23.3,18.2,19.8,8396.4,0.008396,Fragile,NO,NO,3,NONE,NO,12
+P015,Smart Meter,finished_good,1.4,22.0,15.9,16.7,5841.7,0.005842,Fragile,NO,NO,3,NONE,NO,32
