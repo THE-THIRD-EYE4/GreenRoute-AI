@@ -260,6 +260,29 @@ class ModeOptionOut(BaseModel):
     road_vehicle_utilisation_pct: float | None = None
 
 
+class NodeOut(BaseModel):
+    node_id: str
+    node_type: str
+    city: str
+    latitude: float
+    longitude: float
+    airport_iata: str | None = None
+    rail_hub: bool
+
+
+class ScenarioOut(BaseModel):
+    scenario_id: str
+    scenario_type: str
+    affected_node: str
+    start_date: str
+    duration_days: int
+    severity: float
+    capacity_reduction: float
+    lead_time_increase: int
+    demand_change: float
+    route_status: str
+
+
 class QuoteResponse(BaseModel):
     physicals: PhysicalsOut
     options: list[ModeOptionOut]

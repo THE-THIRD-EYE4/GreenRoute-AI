@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #f7f7f4;
+  --surface: #ffffff;
+  --ink: #1a1d21;
+  --rule: #dddcd6;
+  --steel: #2f5068;
+  --moss: #3f6b47;
+  --amber: #8a6212;
+  --signal: #9e2f2f;
+
+  --steel-10: rgba(47, 80, 104, 0.1);
+  --steel-20: rgba(47, 80, 104, 0.2);
+  --moss-12: rgba(63, 107, 71, 0.12);
+  --amber-12: rgba(138, 98, 18, 0.12);
+  --signal-12: rgba(158, 47, 47, 0.12);
+}
+
+* {
+  border-color: var(--rule);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--font-inter), -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Every numeric cell aligns without going full terminal. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: var(--steel-20);
+}
+
+/* Single, orchestrated focus treatment -- --steel ring everywhere. */
+:focus-visible {
+  outline: 2px solid var(--steel);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.maplibregl-ctrl-attrib {
+  font-size: 10px !important;
+}
+
+.maplibregl-popup-content {
+  background: var(--surface) !important;
+  border: 1px solid var(--rule) !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  font-family: var(--font-inter), sans-serif;
+  padding: 8px 10px !important;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: var(--surface) !important;
+}

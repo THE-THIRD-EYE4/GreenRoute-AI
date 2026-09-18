@@ -15,6 +15,7 @@ from dispatch.routing import assign_customers_to_nearest_depot, solve_cvrptw
 from dispatch.schemas import (
     FleetUtilisationRow,
     ModeOptionOut,
+    NodeOut,
     OptimizeRequest,
     OptimizeResponse,
     ParetoPoint,
@@ -23,6 +24,7 @@ from dispatch.schemas import (
     QuoteRequest,
     QuoteResponse,
     ReoptimizationOut,
+    ScenarioOut,
     TwinEventRequest,
     TwinEventResponse,
     TwinStateOut,
@@ -72,6 +74,59 @@ app.add_middleware(
 @app.get("/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/network/nodes", response_model=list[NodeOut])
+def network_nodes() -> list[NodeOut]:
+    dataset = load_dataset()
+    return [
+        NodeOut(
+            node_id=row.Node_ID,
+            node_type=row.Node_Type,
+            city=row.City,
+            latitude=float(row.Latitude),
+            longitude=float(row.Longitude),
+            airport_iata=row.Nearest_Airport_IATA if isinstance(row.Nearest_Airport_IATA, str) else None,
+            rail_hub=row.Rail_Hub == "YES",
+        )
+        for row in dataset.node_coordinates.itertuples()
+    ]
+
+
+@app.get("/network/routes")
+def network_routes() -> list[dict]:
+    dataset = load_dataset()
+    return [
+        {
+            "route_id": row.Route_ID,
+            "origin": row.Origin,
+            "destination": row.Destination,
+            "mode": row.Transport_Mode,
+            "route_status": row.Route_Status,
+            "distance_km": float(row.Distance_km),
+        }
+        for row in dataset.routes.itertuples()
+    ]
+
+
+@app.get("/scenarios", response_model=list[ScenarioOut])
+def scenarios() -> list[ScenarioOut]:
+    dataset = load_dataset()
+    return [
+        ScenarioOut(
+            scenario_id=row.Scenario_ID,
+            scenario_type=row.Scenario_Type,
+            affected_node=row.Affected_Node,
+            start_date=str(row.Start_Date.date()),
+            duration_days=int(row.Duration_days),
+            severity=float(row.Severity),
+            capacity_reduction=float(row.Capacity_Reduction),
+            lead_time_increase=int(row.Lead_Time_Increase),
+            demand_change=float(row.Demand_Change),
+            route_status=row.Route_Status,
+        )
+        for row in dataset.scenarios.itertuples()
+    ]
 
 
 @app.get("/pareto", response_model=ParetoResponse)
