@@ -34,13 +34,13 @@ class ForecastResult:
     p90: list[float]
 
 
-def _series_for(ds: Dataset, customer_id: str, product_id: str) -> pd.Series:
+def series_for_customer_product(ds: Dataset, customer_id: str, product_id: str) -> pd.Series:
     sub = ds.demand[(ds.demand.Customer_ID == customer_id) & (ds.demand.Product_ID == product_id)]
     sub = sub.sort_values("Date")
     return pd.Series(sub.Demand_Quantity.values, index=pd.DatetimeIndex(sub.Date.values))
 
 
-def _fit_ets(train: pd.Series) -> SimpleExpSmoothing:
+def fit_ets(train: pd.Series) -> SimpleExpSmoothing:
     model = SimpleExpSmoothing(train.values, initialization_method="estimated")
     return model.fit(optimized=True)
 
@@ -71,11 +71,11 @@ def forecast_customer_product(
     seed: int = SEED,
 ) -> ForecastResult:
     ds = ds or load_dataset()
-    series = _series_for(ds, customer_id, product_id)
+    series = series_for_customer_product(ds, customer_id, product_id)
     if series.empty:
         raise KeyError(f"No demand history for {customer_id}/{product_id}")
 
-    fitted = _fit_ets(series)
+    fitted = fit_ets(series)
     residuals = series.values - fitted.fittedvalues
     point_forecast = fitted.forecast(horizon_days)
 
@@ -123,7 +123,7 @@ def backtest_customer_product(
     everything up to t-1, forecast day t, score against the realised value.
     """
     ds = ds or load_dataset()
-    series = _series_for(ds, customer_id, product_id)
+    series = series_for_customer_product(ds, customer_id, product_id)
     n = len(series)
     if n <= test_days + 5:
         raise ValueError(f"Not enough history to backtest {test_days} days for {customer_id}/{product_id}")
@@ -135,7 +135,7 @@ def backtest_customer_product(
         train = series.iloc[:i]
         actual = float(series.iloc[i])
 
-        fitted = _fit_ets(train)
+        fitted = fit_ets(train)
         residuals = train.values - fitted.fittedvalues
         point_forecast = np.asarray(fitted.forecast(1))
         p10, p50, p90 = _bootstrap_quantiles(point_forecast, residuals, n_boot, seed + i)
