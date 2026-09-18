@@ -13,6 +13,7 @@ capacities/lead-times, never static historical averages.
 """
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
@@ -589,3 +590,78 @@ class DigitalTwin:
                     "breached": lane.consecutive_late_ticks >= LATE_STREAK_TRIGGER,
                 }
         return list(rows.values())
+
+
+def build_route_lane_map(ds: Dataset) -> dict[str, list[str]]:
+    """Shared with DigitalTwin: maps a scenario's pre-augmentation lane id
+    (R001-R045) to every augmented Route_ID on that same (Origin,
+    Destination) pair.
+    """
+    original = pd.read_csv(DATA_DIR / "original" / "transportation_routes.csv")
+    od_to_augmented: dict[tuple[str, str], list[str]] = {}
+    for row in ds.routes.itertuples():
+        od_to_augmented.setdefault((row.Origin, row.Destination), []).append(row.Route_ID)
+    return {row.Route_ID: od_to_augmented.get((row.Origin, row.Destination), []) for row in original.itertuples()}
+
+
+def model_data_for_scenario(
+    ds: Dataset, base_md: ModelData, g: nx.MultiDiGraph, scenario_id: str, route_lane_map: dict[str, list[str]] | None = None
+) -> ModelData:
+    """A static (non-tick-driven) snapshot of the MILP's ModelData with one
+    scenario fully in effect -- the live-perturbed input the precomputed
+    per-scenario Pareto cache solves against, instead of the unperturbed
+    baseline. Mirrors DigitalTwin's own override logic (_supplier_overrides
+    / _lane_overrides / _demand_overrides) but reads directly off the
+    scenario row rather than the twin's ticked state.
+    """
+    route_lane_map = route_lane_map or build_route_lane_map(ds)
+    row = ds.scenarios.loc[ds.scenarios.Scenario_ID == scenario_id]
+    if row.empty:
+        raise KeyError(f"Unknown scenario id: {scenario_id}")
+    r = row.iloc[0]
+    target = r["Affected_Node"]
+
+    offers = base_md.supplier_offers.copy()
+    offers["Capacity"] = offers["Capacity"].astype(float)
+    if target.startswith("S"):
+        reduction = float(r["Capacity_Reduction"]) if r["Capacity_Reduction"] > 0 else (
+            float(r["Severity"]) if r["Scenario_Type"] == "Supplier outage" else 0.0
+        )
+        remaining = max(0.0, 1.0 - reduction)
+        offers.loc[offers.Supplier_ID == target, "Capacity"] *= remaining
+
+    closed_routes: set[str] = set()
+    leadtime_bump: dict[str, int] = {}
+    if target.startswith("R"):
+        for route_id in route_lane_map.get(target, []):
+            if r["Route_Status"] != "UNCHANGED":
+                closed_routes.add(route_id)
+            leadtime_bump[route_id] = int(r["Lead_Time_Increase"])
+
+    legs = [leg for leg in base_md.legs if leg.route_id not in closed_routes]
+    if leadtime_bump:
+        legs = [
+            dataclasses.replace(leg, transit_days=leg.transit_days + leadtime_bump[leg.route_id])
+            if leg.route_id in leadtime_bump
+            else leg
+            for leg in legs
+        ]
+    legs_by_type: dict[tuple[str, str], list] = {}
+    for leg in legs:
+        legs_by_type.setdefault((leg.origin_type, leg.destination_type), []).append(leg)
+
+    demand = dict(base_md.demand)
+    if target.startswith("C") and float(r["Demand_Change"]) != 0.0:
+        mult = 1.0 + float(r["Demand_Change"])
+        for (c, p), qty in list(demand.items()):
+            if c == target:
+                demand[(c, p)] = qty * mult
+    total_demand = sum(demand.get((c, p), 0.0) for c, p in base_md.customer_product.items())
+
+    return ModelData(
+        legs=legs, legs_by_type=legs_by_type, component_products=base_md.component_products,
+        finished_products=base_md.finished_products, unit_weight_kg=base_md.unit_weight_kg,
+        supplier_offers=offers, customer_product=base_md.customer_product, demand=demand,
+        warehouse_capacity=base_md.warehouse_capacity, factory_capacity=base_md.factory_capacity,
+        bom=base_md.bom, total_demand=total_demand,
+    )
