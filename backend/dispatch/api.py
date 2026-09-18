@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,13 +9,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from dispatch import pareto_cache
 from dispatch.data_loader import load_dataset
 from dispatch.optimizer import solve_min_cost
+from dispatch.eta import train_eta_model
+from dispatch.modes import quote_shipment, rank_options, air_vs_rail_co2_multiple
 from dispatch.routing import assign_customers_to_nearest_depot, solve_cvrptw
 from dispatch.schemas import (
     FleetUtilisationRow,
+    ModeOptionOut,
     OptimizeRequest,
     OptimizeResponse,
     ParetoPoint,
     ParetoResponse,
+    PhysicalsOut,
+    QuoteRequest,
+    QuoteResponse,
     ReoptimizationOut,
     TwinEventRequest,
     TwinEventResponse,
@@ -26,6 +33,14 @@ from dispatch.schemas import (
 from dispatch.twin import DigitalTwin
 
 _twin: DigitalTwin | None = None
+_eta_model = None
+
+
+def get_eta_model():
+    global _eta_model
+    if _eta_model is None:
+        _eta_model = train_eta_model(load_dataset())
+    return _eta_model
 
 
 def get_twin() -> DigitalTwin:
@@ -39,6 +54,7 @@ def get_twin() -> DigitalTwin:
 async def lifespan(app: FastAPI):
     pareto_cache.warm_cache()
     get_twin()
+    get_eta_model()
     yield
 
 
@@ -207,3 +223,49 @@ def fleet_utilisation() -> list[FleetUtilisationRow]:
             )
         )
     return rows
+
+
+@app.post("/shipment/quote", response_model=QuoteResponse)
+def shipment_quote(req: QuoteRequest) -> QuoteResponse:
+    dataset = load_dataset()
+    eta_model = get_eta_model()
+
+    try:
+        deadline = datetime.fromisoformat(req.deadline)
+        departure = datetime.fromisoformat(req.departure) if req.departure else None
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid datetime: {e}")
+
+    for node_id in (req.origin, req.destination):
+        if node_id not in set(dataset.node_coordinates.Node_ID):
+            raise HTTPException(status_code=404, detail=f"Unknown node id: {node_id}")
+
+    items = [(i.product_id, i.quantity) for i in req.items]
+    physicals, options = quote_shipment(dataset, eta_model, items, req.origin, req.destination, deadline, departure)
+    picks = rank_options(options)
+
+    def to_out(opt) -> ModeOptionOut:
+        return ModeOptionOut(
+            mode=opt.mode, feasible=opt.feasible, infeasible_reason=opt.infeasible_reason,
+            distance_km=round(opt.distance_km, 1), cost=round(opt.cost, 2), co2_kg=round(opt.co2_kg, 3),
+            transit_days=opt.transit_days, eta_p10_days=round(opt.eta_p10_days, 2),
+            eta_p50_days=round(opt.eta_p50_days, 2), eta_p90_days=round(opt.eta_p90_days, 2),
+            on_time_probability=round(opt.on_time_probability, 3), reliability=round(opt.reliability, 3),
+            flights=[f.__dict__ for f in opt.flights],
+            road_stop_sequence=opt.road_stop_sequence, road_arrival_min=opt.road_arrival_min,
+            road_cumulative_load_kg=opt.road_cumulative_load_kg, road_vehicle_id=opt.road_vehicle_id,
+            road_vehicle_utilisation_pct=opt.road_vehicle_utilisation_pct,
+        )
+
+    return QuoteResponse(
+        physicals=PhysicalsOut(
+            gross_kg=round(physicals.gross_kg, 2), volume_m3=round(physicals.volume_m3, 4),
+            chargeable_kg_air=round(physicals.chargeable_kg_air, 2),
+            chargeable_kg_road=round(physicals.chargeable_kg_road, 2), contains_hazmat=physicals.contains_hazmat,
+        ),
+        options=[to_out(o) for o in options],
+        cheapest=to_out(picks["cheapest"]) if picks else None,
+        greenest=to_out(picks["greenest"]) if picks else None,
+        fastest=to_out(picks["fastest"]) if picks else None,
+        air_vs_rail_co2_multiple=round(air_vs_rail_co2_multiple(), 2),
+    )

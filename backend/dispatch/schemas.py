@@ -203,3 +203,67 @@ class FleetUtilisationRow(BaseModel):
     vehicle_class: str
     home_depot: str
     utilisation_pct: float | None = None
+
+
+# --- Shipment quote ----------------------------------------------------------
+
+
+class QuoteItem(BaseModel):
+    product_id: str
+    quantity: float
+
+
+class QuoteRequest(BaseModel):
+    items: list[QuoteItem]
+    origin: str
+    destination: str
+    deadline: str = Field(description="ISO datetime")
+    departure: str | None = Field(default=None, description="ISO datetime; defaults to now")
+
+
+class PhysicalsOut(BaseModel):
+    gross_kg: float
+    volume_m3: float
+    chargeable_kg_air: float
+    chargeable_kg_road: float
+    contains_hazmat: bool
+
+
+class AirFlightOut(BaseModel):
+    flight_id: str
+    carrier_name: str
+    departure_utc: str
+    arrival_utc: str
+    cutoff_utc: str
+    remaining_uld_kg: float
+    cost_per_kg: float
+
+
+class ModeOptionOut(BaseModel):
+    mode: str
+    feasible: bool
+    infeasible_reason: str | None
+    distance_km: float
+    cost: float
+    co2_kg: float
+    transit_days: int
+    eta_p10_days: float
+    eta_p50_days: float
+    eta_p90_days: float
+    on_time_probability: float
+    reliability: float
+    flights: list[AirFlightOut] = []
+    road_stop_sequence: list[str] | None = None
+    road_arrival_min: list[float] | None = None
+    road_cumulative_load_kg: list[float] | None = None
+    road_vehicle_id: str | None = None
+    road_vehicle_utilisation_pct: float | None = None
+
+
+class QuoteResponse(BaseModel):
+    physicals: PhysicalsOut
+    options: list[ModeOptionOut]
+    cheapest: ModeOptionOut | None
+    greenest: ModeOptionOut | None
+    fastest: ModeOptionOut | None
+    air_vs_rail_co2_multiple: float
