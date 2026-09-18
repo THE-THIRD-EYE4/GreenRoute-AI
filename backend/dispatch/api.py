@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -37,27 +39,50 @@ from dispatch.twin import DigitalTwin
 
 _twin: DigitalTwin | None = None
 _eta_model = None
+# Guards _twin/_eta_model construction: the background warm-up thread and an
+# early incoming request can both see the "None" state at once and each build
+# a duplicate (and, for _twin, divergent) instance without this.
+_model_lock = threading.Lock()
 
 
 def get_eta_model():
     global _eta_model
     if _eta_model is None:
-        _eta_model = train_eta_model(load_dataset())
+        with _model_lock:
+            if _eta_model is None:
+                _eta_model = train_eta_model(load_dataset())
     return _eta_model
 
 
 def get_twin() -> DigitalTwin:
     global _twin
     if _twin is None:
-        _twin = DigitalTwin()
+        with _model_lock:
+            if _twin is None:
+                _twin = DigitalTwin()
     return _twin
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    pareto_cache.warm_cache()
-    get_twin()
-    get_eta_model()
+    """Start serving IMMEDIATELY; warm heavy caches in the background.
+
+    Warming 55 Pareto fronts plus the ETA model takes minutes. Doing that here
+    synchronously meant uvicorn did not bind the port until it finished, so the
+    frontend got ERR_CONNECTION_REFUSED on every request and looked broken when
+    it was only starting. Requests arriving before the warm completes still get
+    correct answers -- pareto_cache.get_front() falls back to an on-demand solve.
+    """
+    pareto_cache.start_warm_cache_background()
+
+    def _warm_models() -> None:
+        try:
+            get_twin()
+            get_eta_model()
+        except Exception:  # never let a warm failure take down the server
+            logging.getLogger(__name__).exception("model warm-up failed")
+
+    threading.Thread(target=_warm_models, name="model-warm", daemon=True).start()
     yield
 
 
@@ -74,7 +99,28 @@ app.add_middleware(
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok"}
+    """Liveness AND readiness.
+
+    `ready` is false while Pareto fronts are still warming. The API answers
+    regardless -- uncached scenarios just solve on demand and take longer -- but
+    the frontend uses this to show "starting up" rather than a blank screen.
+    """
+    warm = pareto_cache.warm_status()
+    total = int(warm.get("total") or 0)
+    completed = int(warm.get("completed") or 0)
+    return {
+        "status": "ok",
+        "ready": bool(warm.get("done")),
+        "warming": {
+            "started": bool(warm.get("started")),
+            "done": bool(warm.get("done")),
+            "completed": completed,
+            "total": total,
+            "current": warm.get("current"),
+            "percent": round(100 * completed / total, 1) if total else 0.0,
+            "error": warm.get("error"),
+        },
+    }
 
 
 @app.get("/network/nodes", response_model=list[NodeOut])

@@ -1,3 +1,4 @@
+import threading
 import time
 import warnings
 
@@ -7,6 +8,27 @@ from dispatch import pareto_cache
 from dispatch.twin import build_route_lane_map, model_data_for_scenario
 
 warnings.filterwarnings("ignore")
+
+
+def _fresh_warm_state() -> dict:
+    return {
+        "started": False,
+        "done": False,
+        "total": 0,
+        "completed": 0,
+        "current": None,
+        "error": None,
+    }
+
+
+def _wait_until_done(timeout: float = 2.0) -> dict:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        status = pareto_cache.warm_status()
+        if status["done"]:
+            return status
+        time.sleep(0.02)
+    raise AssertionError("warm-up did not report done in time")
 
 
 @pytest.fixture(scope="module")
@@ -65,3 +87,49 @@ def test_to_response_labels_present(warmed):
     assert resp.cheapest_id in ids
     assert resp.greenest_id in ids
     assert resp.most_resilient_id in ids
+
+
+def test_start_warm_cache_background_runs_and_reports_done(monkeypatch):
+    monkeypatch.setattr(pareto_cache, "_warm_state", _fresh_warm_state())
+    called = threading.Event()
+
+    def fake_warm() -> None:
+        called.set()
+
+    monkeypatch.setattr(pareto_cache, "warm_cache", fake_warm)
+    pareto_cache.start_warm_cache_background()
+
+    assert called.wait(timeout=2), "background thread never called warm_cache()"
+    status = _wait_until_done()
+    assert status["started"] is True
+    assert status["error"] is None
+
+
+def test_start_warm_cache_background_is_idempotent(monkeypatch):
+    monkeypatch.setattr(pareto_cache, "_warm_state", _fresh_warm_state())
+    calls: list[int] = []
+    release = threading.Event()
+
+    def fake_warm() -> None:
+        calls.append(1)
+        release.wait(timeout=2)
+
+    monkeypatch.setattr(pareto_cache, "warm_cache", fake_warm)
+    pareto_cache.start_warm_cache_background()
+    pareto_cache.start_warm_cache_background()  # must be a no-op: already started
+    release.set()
+    _wait_until_done()
+    assert len(calls) == 1
+
+
+def test_warm_cache_exception_is_captured_not_raised(monkeypatch):
+    monkeypatch.setattr(pareto_cache, "_warm_state", _fresh_warm_state())
+
+    def boom() -> None:
+        raise RuntimeError("solver exploded")
+
+    monkeypatch.setattr(pareto_cache, "warm_cache", boom)
+    pareto_cache.start_warm_cache_background()  # must not raise in this thread
+
+    status = _wait_until_done()
+    assert status["error"] is not None and "solver exploded" in status["error"]

@@ -7,7 +7,12 @@ def test_health():
     with TestClient(app) as client:
         r = client.get("/health")
         assert r.status_code == 200
-        assert r.json() == {"status": "ok"}
+        body = r.json()
+        assert body["status"] == "ok"
+        assert isinstance(body["ready"], bool)
+        assert set(body["warming"]) == {
+            "started", "done", "completed", "total", "current", "percent", "error",
+        }
 
 
 def test_pareto_endpoint_returns_labelled_picks():

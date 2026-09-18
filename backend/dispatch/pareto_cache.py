@@ -31,6 +31,19 @@ _BASELINE_GRID = dict(n_co2_points=9, n_leadtime_points=4)
 
 _lock = threading.Lock()
 _cache: dict[str, list[SolveResult]] = {}
+
+# Warm-up progress, so /health can report readiness instead of the server simply
+# not answering. Warming 55 NSGA/epsilon fronts takes minutes; blocking the event
+# loop on it means every frontend request gets connection-refused and the UI looks
+# broken when it is merely starting.
+_warm_state: dict[str, object] = {
+    "started": False,
+    "done": False,
+    "total": 0,
+    "completed": 0,
+    "current": None,
+    "error": None,
+}
 _computed_at: dict[str, str] = {}
 _model_data: ModelData | None = None
 _dataset: Dataset | None = None
@@ -66,26 +79,78 @@ def _get_route_lane_map() -> dict[str, list[str]]:
     return _route_lane_map
 
 
+def warm_status() -> dict:
+    """Snapshot of warm-up progress for /health."""
+    with _lock:
+        return dict(_warm_state)
+
+
+def start_warm_cache_background() -> None:
+    """Warm the cache on a daemon thread so the API serves immediately.
+
+    A request that lands before its front is warm still gets a correct answer:
+    get_front() falls back to an on-demand solve. It is slower, not broken.
+    """
+    with _lock:
+        if _warm_state["started"]:
+            return
+        _warm_state["started"] = True
+
+    def _run() -> None:
+        try:
+            warm_cache()
+        except Exception as exc:  # never let a warm failure kill the server
+            with _lock:
+                _warm_state["error"] = str(exc)
+        finally:
+            with _lock:
+                _warm_state["done"] = True
+                _warm_state["current"] = None
+
+    threading.Thread(target=_run, name="pareto-warm", daemon=True).start()
+
+
 def warm_cache() -> None:
     """Compute and cache the baseline front plus all 54 scenario fronts.
-    Called once at FastAPI startup so no request ever pays the solve cost.
+
+    Safe to call directly (tests do), but production startup uses
+    start_warm_cache_background() so uvicorn binds the port immediately.
     """
     ds = get_dataset()
     g = get_graph()
     md = get_model_data()
     lane_map = _get_route_lane_map()
 
+    scenario_ids = list(ds.scenarios.Scenario_ID)
     with _lock:
-        if BASELINE_SCENARIO not in _cache:
-            _cache[BASELINE_SCENARIO] = pareto_front(md, **_BASELINE_GRID)
-            _computed_at[BASELINE_SCENARIO] = datetime.now(timezone.utc).isoformat()
+        _warm_state["total"] = len(scenario_ids) + 1
+        _warm_state["completed"] = 0
 
-        for scenario_id in ds.scenarios.Scenario_ID:
-            if scenario_id in _cache:
-                continue
+    # NOTE: the solve happens OUTSIDE the lock. Holding _lock across a multi-minute
+    # NSGA/epsilon sweep would serialise every concurrent /pareto request behind it,
+    # which is the same stall this refactor exists to remove.
+    if BASELINE_SCENARIO not in _cache:
+        with _lock:
+            _warm_state["current"] = BASELINE_SCENARIO
+        baseline = pareto_front(md, **_BASELINE_GRID)
+        with _lock:
+            _cache[BASELINE_SCENARIO] = baseline
+            _computed_at[BASELINE_SCENARIO] = datetime.now(timezone.utc).isoformat()
+    with _lock:
+        _warm_state["completed"] = 1
+
+    for i, scenario_id in enumerate(scenario_ids, start=2):
+        with _lock:
+            already = scenario_id in _cache
+            _warm_state["current"] = scenario_id
+        if not already:
             scenario_md = model_data_for_scenario(ds, md, g, scenario_id, lane_map)
-            _cache[scenario_id] = pareto_front(scenario_md, **_SCENARIO_GRID)
-            _computed_at[scenario_id] = datetime.now(timezone.utc).isoformat()
+            front = pareto_front(scenario_md, **_SCENARIO_GRID)
+            with _lock:
+                _cache[scenario_id] = front
+                _computed_at[scenario_id] = datetime.now(timezone.utc).isoformat()
+        with _lock:
+            _warm_state["completed"] = i
 
 
 def get_front(scenario_id: str = BASELINE_SCENARIO) -> list[SolveResult]:

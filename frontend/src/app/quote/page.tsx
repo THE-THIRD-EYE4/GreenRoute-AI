@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { ApiStatus } from "@/components/ui/ApiStatus";
 import { QuoteForm, type QuoteFormValue } from "@/components/quote/QuoteForm";
 import { PhysicalsSummary } from "@/components/quote/PhysicalsSummary";
 import { OptionCard } from "@/components/quote/OptionCard";
@@ -61,6 +62,7 @@ export default function QuotePage() {
 
   return (
     <div className="flex h-screen flex-col overflow-y-auto bg-paper">
+      <ApiStatus />
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-rule bg-surface px-4">
         <div className="flex items-center gap-3">
           <span className="text-15 font-semibold text-ink">SU-02 Dispatch</span>

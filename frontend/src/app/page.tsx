@@ -8,7 +8,8 @@ import { ParetoChart } from "@/components/console/ParetoChart";
 import { PlanDetail } from "@/components/console/PlanDetail";
 import { LaneDetail } from "@/components/console/LaneDetail";
 import { VarianceStrip } from "@/components/console/VarianceStrip";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { ApiStatus } from "@/components/ui/ApiStatus";
 import type {
   NodeCoordinate,
   ObjectiveWeights,
@@ -29,6 +30,7 @@ const DEFAULT_WEIGHTS: ObjectiveWeights = {
 };
 
 export default function ConsolePage() {
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [nodes, setNodes] = useState<NodeCoordinate[]>([]);
   const [routes, setRoutes] = useState<RouteEdge[]>([]);
   const [scenarios, setScenarios] = useState<ScenarioRow[]>([]);
@@ -61,7 +63,12 @@ export default function ConsolePage() {
       setScenarios(s);
       setTwin(t);
       setFront(p);
-    })().catch((err) => console.error("initial load failed", err));
+    })().catch((err) => {
+      // Surface it: a swallowed load failure renders as a blank console with no
+      // explanation, which is the single most confusing failure mode here.
+      console.error("initial load failed", err);
+      setLoadError(err instanceof ApiError ? err.userMessage : String(err));
+    });
   }, []);
 
   const refreshVariance = useCallback(async () => {
@@ -174,6 +181,16 @@ export default function ConsolePage() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-paper">
+      <ApiStatus />
+      {loadError && (
+        <div
+          className="shrink-0 border-b border-rule px-4 py-2 text-11"
+          style={{ backgroundColor: "var(--signal-12)", color: "var(--signal)" }}
+          role="alert"
+        >
+          Initial data load failed: {loadError}
+        </div>
+      )}
       <Header tick={twin?.tick ?? 0} freshness={freshness} driftSince={activeScenarioId} />
       <div className="flex min-h-0 flex-1">
         <ScenarioPicker
