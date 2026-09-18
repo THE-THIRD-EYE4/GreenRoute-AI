@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  AttributionControl,
   Map as MLMap,
   NavigationControl,
   Popup,
@@ -39,6 +40,22 @@ const BASE_STYLE: StyleSpecification = {
   ],
 };
 
+// Optional tile basemap. Unset by default: the app must keep working with no
+// tile provider and no network, so the flat BASE_STYLE above is the real
+// fallback, not a placeholder. When set, this must be a full MapLibre style
+// URL from a provider whose terms allow this use (e.g. MapTiler, Stadia,
+// Carto, Protomaps) -- never a raw tile.openstreetmap.org URL, which OSMF's
+// tile usage policy does not permit for an app like this.
+const MAP_STYLE_URL = process.env.NEXT_PUBLIC_MAP_STYLE_URL || null;
+
+function basemapProviderLabel(styleUrl: string): string {
+  try {
+    return new URL(styleUrl).hostname;
+  } catch {
+    return "configured provider";
+  }
+}
+
 export function MapPanel({
   nodes,
   routes,
@@ -62,11 +79,17 @@ export function MapPanel({
     if (!containerRef.current || mapRef.current) return;
     const map = new MLMap({
       container: containerRef.current,
-      style: BASE_STYLE,
+      style: MAP_STYLE_URL ?? BASE_STYLE,
       center: [78.9, 20.5],
       zoom: 3.9,
+      // Attribution is a licence condition of a configured tile provider, not
+      // a nicety -- only suppress the default control when there is no
+      // provider (the flat offline canvas needs none).
       attributionControl: false,
     });
+    if (MAP_STYLE_URL) {
+      map.addControl(new AttributionControl({ compact: true }), "bottom-right");
+    }
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     map.on("load", () => {
       // React 18 StrictMode dev double-invokes this effect: the first map
@@ -279,6 +302,12 @@ export function MapPanel({
   return (
     <div className="relative h-full min-h-0 w-full">
       <div ref={containerRef} className="h-full w-full" />
+      <div
+        className="pointer-events-none absolute left-2 top-2 rounded border border-rule bg-surface/95 px-2 py-1 text-11 text-ink/60"
+        title={MAP_STYLE_URL ? `Basemap tiles from ${basemapProviderLabel(MAP_STYLE_URL)}` : undefined}
+      >
+        {MAP_STYLE_URL ? `Basemap: ${basemapProviderLabel(MAP_STYLE_URL)}` : "Offline canvas — no basemap configured"}
+      </div>
       <div className="pointer-events-none absolute bottom-2 left-2 flex flex-col gap-1 rounded border border-rule bg-surface/95 px-2 py-1.5 text-11">
         {NODE_TYPE_ORDER.map((t) => (
           <div key={t} className="flex items-center gap-1.5">
