@@ -1,7 +1,7 @@
 """Pydantic response/request models for the FastAPI surface."""
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from dispatch.optimizer import SolveResult
 
@@ -58,3 +58,112 @@ class OptimizeResponse(BaseModel):
     scenario_id: str
     front: list[ParetoPoint]
     selected: ParetoPoint | None = None
+
+
+# --- Twin ------------------------------------------------------------------
+
+
+class InventoryStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    node_id: str
+    product_id: str
+    level: float
+    safety_stock: float
+    avg_daily_consumption: float
+    days_of_cover: float
+    horizon_days: float
+
+
+class InTransitShipmentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    shipment_id: str
+    route_id: str
+    product_id: str
+    quantity: float
+    origin: str
+    destination: str
+    departure_tick: int
+    planned_arrival_tick: int
+    sampled_arrival_tick: int
+    status: str
+
+
+class SupplierStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    supplier_id: str
+    status: str
+    remaining_capacity_frac: float
+    posterior_alpha: float
+    posterior_beta: float
+
+
+class LaneStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    route_id: str
+    status: str
+    planned_transit_days: float
+    realized_transit_days: float | None
+    consecutive_late_ticks: int
+
+
+class DemandStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    customer_id: str
+    product_id: str
+    observed: float
+    forecast: float
+
+
+class VehicleStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    vehicle_id: str
+    node_id: str
+    load_factor: float
+    hours_driven_today: float
+    next_stop: str | None
+
+
+class TwinStateOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    tick: int
+    timestamp: str
+    inventory: list[InventoryStateOut]
+    in_transit: list[InTransitShipmentOut]
+    supplier: list[SupplierStateOut]
+    lane: list[LaneStateOut]
+    demand: list[DemandStateOut]
+    vehicle: list[VehicleStateOut]
+    reoptimization_triggered: bool
+    trigger_reasons: list[str]
+    active_scenarios: list[str]
+
+
+class TwinEventRequest(BaseModel):
+    scenario_id: str
+    n_ticks: int = Field(default=1, ge=1, le=30)
+
+
+class ReoptimizationOut(BaseModel):
+    tick: int
+    trigger_reasons: list[str]
+    plan: ParetoPoint
+    delta_cost: float
+    delta_co2: float
+
+
+class TwinEventResponse(BaseModel):
+    states: list[TwinStateOut]
+    reoptimizations: list[ReoptimizationOut]
+
+
+class VarianceRow(BaseModel):
+    route_id: str
+    planned_transit_days: float
+    realized_transit_days: float
+    drift_days: float
+    consecutive_late_ticks: int
+    breached: bool
+
+
+class VarianceResponse(BaseModel):
+    rows: list[VarianceRow]

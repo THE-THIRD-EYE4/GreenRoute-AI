@@ -7,12 +7,34 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from dispatch import pareto_cache
 from dispatch.optimizer import solve_min_cost
-from dispatch.schemas import OptimizeRequest, OptimizeResponse, ParetoPoint, ParetoResponse
+from dispatch.schemas import (
+    OptimizeRequest,
+    OptimizeResponse,
+    ParetoPoint,
+    ParetoResponse,
+    ReoptimizationOut,
+    TwinEventRequest,
+    TwinEventResponse,
+    TwinStateOut,
+    VarianceResponse,
+    VarianceRow,
+)
+from dispatch.twin import DigitalTwin
+
+_twin: DigitalTwin | None = None
+
+
+def get_twin() -> DigitalTwin:
+    global _twin
+    if _twin is None:
+        _twin = DigitalTwin()
+    return _twin
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pareto_cache.warm_cache()
+    get_twin()
     yield
 
 
@@ -81,3 +103,44 @@ def optimize(req: OptimizeRequest) -> OptimizeResponse:
         selected = min(scored, key=lambda t: t[0])[1]
 
     return OptimizeResponse(scenario_id=scenario_id, front=points, selected=selected)
+
+
+@app.get("/twin/state", response_model=TwinStateOut)
+def twin_state() -> TwinStateOut:
+    twin = get_twin()
+    return TwinStateOut.model_validate(twin.log[-1])
+
+
+@app.post("/twin/event", response_model=TwinEventResponse)
+def twin_event(req: TwinEventRequest) -> TwinEventResponse:
+    twin = get_twin()
+    before = len(twin.reoptimizations)
+    twin.apply_scenario(req.scenario_id)
+    states = twin.run_ticks(req.n_ticks)
+    new_reopts = twin.reoptimizations[before:]
+    return TwinEventResponse(
+        states=[TwinStateOut.model_validate(s) for s in states],
+        reoptimizations=[
+            ReoptimizationOut(
+                tick=r.tick,
+                trigger_reasons=list(r.trigger_reasons),
+                plan=ParetoPoint.from_result(0, r.plan),
+                delta_cost=round(r.delta_cost, 2),
+                delta_co2=round(r.delta_co2, 4),
+            )
+            for r in new_reopts
+        ],
+    )
+
+
+@app.get("/twin/variance", response_model=VarianceResponse)
+def twin_variance() -> VarianceResponse:
+    twin = get_twin()
+    return VarianceResponse(rows=[VarianceRow(**row) for row in twin.variance_table()])
+
+
+@app.post("/twin/reset")
+def twin_reset() -> dict:
+    twin = get_twin()
+    twin.reset_to_baseline()
+    return {"status": "ok", "tick": twin.log[-1].tick}
