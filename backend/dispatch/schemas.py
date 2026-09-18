@@ -143,6 +143,10 @@ class TwinEventRequest(BaseModel):
     n_ticks: int = Field(default=1, ge=1, le=30)
 
 
+class TwinAdvanceRequest(BaseModel):
+    n_ticks: int = Field(default=1, ge=1, le=30)
+
+
 class ReoptimizationOut(BaseModel):
     tick: int
     trigger_reasons: list[str]

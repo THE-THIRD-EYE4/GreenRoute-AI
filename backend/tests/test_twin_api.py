@@ -42,3 +42,22 @@ def test_twin_reset_endpoint():
         assert r.json()["tick"] == 0
         state = client.get("/twin/state").json()
         assert state["tick"] == 0
+
+
+def test_twin_advance_moves_tick_without_active_scenario():
+    with TestClient(app) as client:
+        client.post("/twin/reset")
+        r = client.post("/twin/advance", json={"n_ticks": 2})
+        assert r.status_code == 200
+        body = r.json()
+        assert len(body["states"]) == 2
+        assert body["states"][0]["active_scenarios"] == []
+        assert body["states"][-1]["tick"] == 2
+
+        state = client.get("/twin/state").json()
+        assert state["tick"] == 2
+
+        reset = client.post("/twin/reset")
+        assert reset.status_code == 200
+        assert reset.json()["tick"] == 0
+        assert client.get("/twin/state").json()["tick"] == 0

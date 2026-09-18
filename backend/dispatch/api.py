@@ -25,6 +25,7 @@ from dispatch.schemas import (
     QuoteResponse,
     ReoptimizationOut,
     ScenarioOut,
+    TwinAdvanceRequest,
     TwinEventRequest,
     TwinEventResponse,
     TwinStateOut,
@@ -191,6 +192,31 @@ def twin_event(req: TwinEventRequest) -> TwinEventResponse:
     twin = get_twin()
     before = len(twin.reoptimizations)
     twin.apply_scenario(req.scenario_id)
+    states = twin.run_ticks(req.n_ticks)
+    new_reopts = twin.reoptimizations[before:]
+    return TwinEventResponse(
+        states=[TwinStateOut.model_validate(s) for s in states],
+        reoptimizations=[
+            ReoptimizationOut(
+                tick=r.tick,
+                trigger_reasons=list(r.trigger_reasons),
+                plan=ParetoPoint.from_result(0, r.plan),
+                delta_cost=round(r.delta_cost, 2),
+                delta_co2=round(r.delta_co2, 4),
+            )
+            for r in new_reopts
+        ],
+    )
+
+
+@app.post("/twin/advance", response_model=TwinEventResponse)
+def twin_advance(req: TwinAdvanceRequest) -> TwinEventResponse:
+    """Advance the twin's tick loop with no scenario applied -- lets the
+    console play the baseline forward, unlike /twin/event which always
+    injects a disruption via apply_scenario() first.
+    """
+    twin = get_twin()
+    before = len(twin.reoptimizations)
     states = twin.run_ticks(req.n_ticks)
     new_reopts = twin.reoptimizations[before:]
     return TwinEventResponse(
