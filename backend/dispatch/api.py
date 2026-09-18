@@ -6,8 +6,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from dispatch import pareto_cache
+from dispatch.data_loader import load_dataset
 from dispatch.optimizer import solve_min_cost
+from dispatch.routing import assign_customers_to_nearest_depot, solve_cvrptw
 from dispatch.schemas import (
+    FleetUtilisationRow,
     OptimizeRequest,
     OptimizeResponse,
     ParetoPoint,
@@ -18,6 +21,7 @@ from dispatch.schemas import (
     TwinStateOut,
     VarianceResponse,
     VarianceRow,
+    VRPResponse,
 )
 from dispatch.twin import DigitalTwin
 
@@ -144,3 +148,62 @@ def twin_reset() -> dict:
     twin = get_twin()
     twin.reset_to_baseline()
     return {"status": "ok", "tick": twin.log[-1].tick}
+
+
+@app.get("/routes/vrp", response_model=VRPResponse)
+def routes_vrp(depot: str | None = None, time_limit_s: int = 5) -> VRPResponse:
+    dataset = load_dataset()
+    if depot is None:
+        groups = assign_customers_to_nearest_depot(dataset)
+        depot = max(groups, key=lambda d: len(groups[d]))
+        customer_ids = groups[depot]
+    else:
+        groups = assign_customers_to_nearest_depot(dataset)
+        customer_ids = groups.get(depot, [])
+        if not customer_ids:
+            raise HTTPException(status_code=404, detail=f"No customers assigned to depot {depot}")
+
+    result = solve_cvrptw(dataset, depot=depot, customer_ids=customer_ids, time_limit_s=time_limit_s)
+    return VRPResponse(
+        depot=result.depot,
+        routes=[
+            {
+                "vehicle_id": r.vehicle_id,
+                "stop_sequence": r.stop_sequence,
+                "arrival_time_min": r.arrival_time_min,
+                "cumulative_load_kg": r.cumulative_load_kg,
+                "legs": [leg.__dict__ for leg in r.legs],
+                "utilisation_pct": r.utilisation_pct,
+            }
+            for r in result.routes
+        ],
+        total_distance_km=result.total_distance_km,
+        total_co2_kg=result.total_co2_kg,
+        unassigned_stops=result.unassigned_stops,
+    )
+
+
+@app.get("/fleet/utilisation", response_model=list[FleetUtilisationRow])
+def fleet_utilisation() -> list[FleetUtilisationRow]:
+    dataset = load_dataset()
+    groups = assign_customers_to_nearest_depot(dataset)
+
+    utilisation_by_vehicle: dict[str, float] = {}
+    for depot, customer_ids in groups.items():
+        if not customer_ids:
+            continue
+        result = solve_cvrptw(dataset, depot=depot, customer_ids=customer_ids, time_limit_s=3)
+        for r in result.routes:
+            utilisation_by_vehicle[r.vehicle_id] = r.utilisation_pct
+
+    rows = []
+    for row in dataset.vehicles.itertuples():
+        rows.append(
+            FleetUtilisationRow(
+                vehicle_id=row.Vehicle_ID,
+                vehicle_class=row.Vehicle_Class,
+                home_depot=row.Home_Depot,
+                utilisation_pct=utilisation_by_vehicle.get(row.Vehicle_ID),
+            )
+        )
+    return rows

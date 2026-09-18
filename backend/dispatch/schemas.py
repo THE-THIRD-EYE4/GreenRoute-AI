@@ -167,3 +167,39 @@ class VarianceRow(BaseModel):
 
 class VarianceResponse(BaseModel):
     rows: list[VarianceRow]
+
+
+# --- Routing / fleet ---------------------------------------------------------
+
+
+class RouteLegOut(BaseModel):
+    from_node: str
+    to_node: str
+    distance_km: float
+    duration_min: float
+    co2_kg: float
+    load_kg_after: float
+
+
+class VehicleRouteOut(BaseModel):
+    vehicle_id: str
+    stop_sequence: list[str]
+    arrival_time_min: list[float]
+    cumulative_load_kg: list[float]
+    legs: list[RouteLegOut]
+    utilisation_pct: float
+
+
+class VRPResponse(BaseModel):
+    depot: str
+    routes: list[VehicleRouteOut]
+    total_distance_km: float
+    total_co2_kg: float
+    unassigned_stops: list[str]
+
+
+class FleetUtilisationRow(BaseModel):
+    vehicle_id: str
+    vehicle_class: str
+    home_depot: str
+    utilisation_pct: float | None = None
