@@ -4,7 +4,9 @@ cd /d "%~dp0..\frontend"
 
 if not exist node_modules (
     echo Installing frontend dependencies...
-    npm install
+    REM npm on Windows is npm.cmd, not an .exe -- calling it without CALL
+    REM hands control to it permanently and this script never resumes after.
+    call npm install
 )
 
 echo.
@@ -13,4 +15,4 @@ echo Start the backend first (scripts\run_backend.bat) -- the app polls
 echo /health and shows a banner if the backend isn't reachable yet.
 echo Press Ctrl+C to stop.
 echo.
-npm run dev
+call npm run dev
