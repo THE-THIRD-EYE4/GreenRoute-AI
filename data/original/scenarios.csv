@@ -1,0 +1,31 @@
+Scenario_ID,Scenario_Type,Affected_Node,Start_Date,Duration_days,Severity,Capacity_Reduction,Lead_Time_Increase,Demand_Change,Route_Status
+SC001,Supplier outage,S013,2026-06-24,5,1.0,0.0,0,0.0,UNCHANGED
+SC002,Port delay,R037,2026-06-07,3,0.7,0.0,3,0.0,UNCHANGED
+SC003,Demand increase,C013,2026-07-05,7,0.8,0.0,0,0.3,UNCHANGED
+SC004,Route closure,R020,2026-06-14,4,1.0,0.0,0,0.0,CLOSED
+SC005,Supplier capacity reduction,S002,2026-06-28,6,0.65,0.45,0,0.0,UNCHANGED
+SC006,Warehouse inventory loss,W03,2026-08-03,1,0.8,0.35,0,0.0,UNCHANGED
+SC007,Shipment delay,SH0278,2026-06-20,3,0.6,0.0,3,0.0,UNCHANGED
+SC008,Factory capacity reduction,F02,2026-07-19,5,0.7,0.3,0,0.0,UNCHANGED
+SC009,Demand surge,C011,2026-08-12,10,1.0,0.0,0,0.5,UNCHANGED
+SC010,Route reliability degradation,R020,2026-07-16,7,0.6,0.0,2,0.0,UNCHANGED
+SC011,Supplier outage,S001,2026-06-16,5,1.0,0.0,0,0.0,UNCHANGED
+SC012,Port delay,R039,2026-06-28,3,0.7,0.0,3,0.0,UNCHANGED
+SC013,Demand increase,C011,2026-07-18,7,0.8,0.0,0,0.3,UNCHANGED
+SC014,Route closure,R003,2026-07-11,4,1.0,0.0,0,0.0,CLOSED
+SC015,Supplier capacity reduction,S006,2026-06-12,6,0.65,0.45,0,0.0,UNCHANGED
+SC016,Warehouse inventory loss,W03,2026-07-06,1,0.8,0.35,0,0.0,UNCHANGED
+SC017,Shipment delay,SH0112,2026-07-14,3,0.6,0.0,3,0.0,UNCHANGED
+SC018,Factory capacity reduction,F03,2026-06-22,5,0.7,0.3,0,0.0,UNCHANGED
+SC019,Demand surge,C024,2026-07-19,10,1.0,0.0,0,0.5,UNCHANGED
+SC020,Route reliability degradation,R035,2026-06-06,7,0.6,0.0,2,0.0,UNCHANGED
+SC021,Supplier outage,S012,2026-06-27,5,1.0,0.0,0,0.0,UNCHANGED
+SC022,Port delay,R032,2026-08-04,3,0.7,0.0,3,0.0,UNCHANGED
+SC023,Demand increase,C007,2026-06-21,7,0.8,0.0,0,0.3,UNCHANGED
+SC024,Route closure,R003,2026-07-19,4,1.0,0.0,0,0.0,CLOSED
+SC025,Supplier capacity reduction,S012,2026-07-03,6,0.65,0.45,0,0.0,UNCHANGED
+SC026,Warehouse inventory loss,W01,2026-06-26,1,0.8,0.35,0,0.0,UNCHANGED
+SC027,Shipment delay,SH0242,2026-08-13,3,0.6,0.0,3,0.0,UNCHANGED
+SC028,Factory capacity reduction,F01,2026-06-28,5,0.7,0.3,0,0.0,UNCHANGED
+SC029,Demand surge,C016,2026-06-19,10,1.0,0.0,0,0.5,UNCHANGED
+SC030,Route reliability degradation,R040,2026-08-12,7,0.6,0.0,2,0.0,UNCHANGED

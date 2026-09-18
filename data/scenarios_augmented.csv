@@ -1,0 +1,55 @@
+Scenario_ID,Scenario_Type,Affected_Node,Start_Date,Duration_days,Severity,Capacity_Reduction,Lead_Time_Increase,Demand_Change,Route_Status
+SC001,Supplier outage,S013,2026-06-24,5,1.0,0.0,0,0.0,UNCHANGED
+SC002,Port delay,R037,2026-06-07,3,0.7,0.0,3,0.0,UNCHANGED
+SC003,Demand increase,C013,2026-07-05,7,0.8,0.0,0,0.3,UNCHANGED
+SC004,Route closure,R020,2026-06-14,4,1.0,0.0,0,0.0,CLOSED
+SC005,Supplier capacity reduction,S002,2026-06-28,6,0.65,0.45,0,0.0,UNCHANGED
+SC006,Warehouse inventory loss,W03,2026-08-03,1,0.8,0.35,0,0.0,UNCHANGED
+SC007,Shipment delay,SH0278,2026-06-20,3,0.6,0.0,3,0.0,UNCHANGED
+SC008,Factory capacity reduction,F02,2026-07-19,5,0.7,0.3,0,0.0,UNCHANGED
+SC009,Demand surge,C011,2026-08-12,10,1.0,0.0,0,0.5,UNCHANGED
+SC010,Route reliability degradation,R020,2026-07-16,7,0.6,0.0,2,0.0,UNCHANGED
+SC011,Supplier outage,S001,2026-06-16,5,1.0,0.0,0,0.0,UNCHANGED
+SC012,Port delay,R039,2026-06-28,3,0.7,0.0,3,0.0,UNCHANGED
+SC013,Demand increase,C011,2026-07-18,7,0.8,0.0,0,0.3,UNCHANGED
+SC014,Route closure,R003,2026-07-11,4,1.0,0.0,0,0.0,CLOSED
+SC015,Supplier capacity reduction,S006,2026-06-12,6,0.65,0.45,0,0.0,UNCHANGED
+SC016,Warehouse inventory loss,W03,2026-07-06,1,0.8,0.35,0,0.0,UNCHANGED
+SC017,Shipment delay,SH0112,2026-07-14,3,0.6,0.0,3,0.0,UNCHANGED
+SC018,Factory capacity reduction,F03,2026-06-22,5,0.7,0.3,0,0.0,UNCHANGED
+SC019,Demand surge,C024,2026-07-19,10,1.0,0.0,0,0.5,UNCHANGED
+SC020,Route reliability degradation,R035,2026-06-06,7,0.6,0.0,2,0.0,UNCHANGED
+SC021,Supplier outage,S012,2026-06-27,5,1.0,0.0,0,0.0,UNCHANGED
+SC022,Port delay,R032,2026-08-04,3,0.7,0.0,3,0.0,UNCHANGED
+SC023,Demand increase,C007,2026-06-21,7,0.8,0.0,0,0.3,UNCHANGED
+SC024,Route closure,R003,2026-07-19,4,1.0,0.0,0,0.0,CLOSED
+SC025,Supplier capacity reduction,S012,2026-07-03,6,0.65,0.45,0,0.0,UNCHANGED
+SC026,Warehouse inventory loss,W01,2026-06-26,1,0.8,0.35,0,0.0,UNCHANGED
+SC027,Shipment delay,SH0242,2026-08-13,3,0.6,0.0,3,0.0,UNCHANGED
+SC028,Factory capacity reduction,F01,2026-06-28,5,0.7,0.3,0,0.0,UNCHANGED
+SC029,Demand surge,C016,2026-06-19,10,1.0,0.0,0,0.5,UNCHANGED
+SC030,Route reliability degradation,R040,2026-08-12,7,0.6,0.0,2,0.0,UNCHANGED
+SC031,Supplier outage,S004,2026-08-11,11,0.93,0.0,0,0.0,UNCHANGED
+SC032,Route closure,R0034,2026-07-01,4,0.83,0.0,0,0.0,CLOSED
+SC033,Fuel price spike,R0016,2026-07-23,10,0.68,0.0,0,0.0,UNCHANGED
+SC034,Air capacity shortfall,R0016,2026-06-05,12,0.81,0.55,2,0.0,UNCHANGED
+SC035,Rail terminal congestion,R0351,2026-08-14,10,0.88,0.0,3,0.0,CONGESTED
+SC036,Carbon price introduction,R0117,2026-07-22,12,0.51,0.0,0,0.0,UNCHANGED
+SC037,Driver shortage,S002,2026-07-18,10,0.77,0.3,2,0.0,UNCHANGED
+SC038,Monsoon corridor disruption,R0149,2026-08-08,4,0.7,0.0,4,0.0,CONGESTED
+SC039,Supplier outage,S003,2026-07-13,12,0.59,0.0,0,0.0,UNCHANGED
+SC040,Route closure,R0016,2026-06-06,5,0.8,0.0,0,0.0,CLOSED
+SC041,Fuel price spike,R0115,2026-07-10,12,0.95,0.0,0,0.0,UNCHANGED
+SC042,Air capacity shortfall,R0115,2026-08-05,3,0.74,0.55,2,0.0,UNCHANGED
+SC043,Rail terminal congestion,R0272,2026-06-28,11,0.72,0.0,3,0.0,CONGESTED
+SC044,Carbon price introduction,R0219,2026-08-24,11,0.55,0.0,0,0.0,UNCHANGED
+SC045,Driver shortage,S010,2026-07-31,7,0.85,0.3,2,0.0,UNCHANGED
+SC046,Monsoon corridor disruption,R0074,2026-06-06,11,0.86,0.0,4,0.0,CONGESTED
+SC047,Supplier outage,S006,2026-06-22,3,0.67,0.0,0,0.0,UNCHANGED
+SC048,Route closure,R0351,2026-07-31,4,0.76,0.0,0,0.0,CLOSED
+SC049,Fuel price spike,R0085,2026-07-06,12,0.96,0.0,0,0.0,UNCHANGED
+SC050,Air capacity shortfall,R0182,2026-07-12,10,0.89,0.55,2,0.0,UNCHANGED
+SC051,Rail terminal congestion,R0043,2026-07-30,4,0.92,0.0,3,0.0,CONGESTED
+SC052,Carbon price introduction,R0034,2026-07-22,2,0.78,0.0,0,0.0,UNCHANGED
+SC053,Driver shortage,S006,2026-07-19,7,0.96,0.3,2,0.0,UNCHANGED
+SC054,Monsoon corridor disruption,R0351,2026-06-19,4,0.52,0.0,4,0.0,CONGESTED

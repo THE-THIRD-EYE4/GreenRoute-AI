@@ -1,0 +1,25 @@
+Customer_ID,Location,Priority,Window_Open,Window_Close,Service_Duration_min,Dock_Type,Accepts_Night_Delivery,Max_Vehicle_Class,Late_Penalty_per_hour
+C001,Madurai,1,07:00,11:00,17,Raised Dock,NO,LCV 3.5t,538.86
+C002,Mysuru,3,07:00,15:00,41,Raised Dock,NO,Rigid 16t,516.86
+C003,Visakhapatnam,3,12:00,20:00,43,Ground,NO,Articulated 28t,272.7
+C004,Nagpur,3,08:00,16:00,47,Ground,YES,Articulated 28t,533.99
+C005,Ahmedabad,1,08:00,11:00,48,Raised Dock,YES,Rigid 16t,865.83
+C006,Delhi,1,07:00,11:00,26,Raised Dock,NO,Articulated 28t,757.22
+C007,Kolkata,3,13:00,22:00,42,Raised Dock,NO,Rigid 12t,738.6
+C008,Kochi,3,10:00,16:00,45,Raised Dock,NO,Rigid 12t,792.73
+C009,Mangaluru,1,09:00,12:00,23,Kerbside,NO,LCV 3.5t,345.5
+C010,Tiruchirappalli,3,06:00,14:00,43,Kerbside,NO,Rigid 12t,221.21
+C011,Mumbai,3,06:00,12:00,50,Kerbside,NO,Articulated 28t,895.54
+C012,Pune,2,07:00,13:00,39,Ground,YES,Articulated 28t,580.12
+C013,Chennai,2,07:00,12:00,47,Ground,NO,Rigid 16t,535.77
+C014,Coimbatore,1,08:00,11:00,42,Kerbside,NO,LCV 3.5t,393.23
+C015,Hyderabad,3,09:00,17:00,15,Ground,NO,Rigid 16t,853.19
+C016,Bengaluru,2,07:00,11:00,40,Ground,NO,Articulated 28t,759.4
+C017,Kochi,2,10:00,14:00,15,Ground,NO,Rigid 12t,785.83
+C018,Madurai,1,08:00,12:00,30,Raised Dock,NO,Rigid 12t,165.95
+C019,Nagpur,2,11:00,17:00,23,Kerbside,YES,Rigid 12t,775.24
+C020,Delhi,3,10:00,16:00,51,Kerbside,NO,Articulated 28t,489.76
+C021,Kolkata,1,07:00,10:00,48,Raised Dock,YES,Articulated 28t,518.79
+C022,Pune,1,07:00,11:00,47,Kerbside,YES,Rigid 16t,302.75
+C023,Ahmedabad,1,07:00,11:00,44,Ground,NO,LCV 3.5t,525.28
+C024,Visakhapatnam,2,12:00,17:00,48,Raised Dock,YES,Rigid 12t,160.52
