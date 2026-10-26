@@ -125,7 +125,8 @@ USE_STOP_FIX = True        # small ToF re-localisation at every stop before a pi
 # pose correction while driving straight
 SIDE_GAIN = 0.08
 FRONT_GAIN = 0.10
-HEAD_GAIN = 0.05
+HEAD_GAIN = 0.5            # heading from the slope of a side-wall reading (mount-offset proof)
+HEAD_FIT_DIST = 0.08       # m of continuous side wall needed for one heading fit
 BIG_FRAMES = 8             # frames that must agree before a large correction is applied
 BIG_SPREAD = 0.008         # m, max spread of those frames
 BIG_MAX = 0.12             # m, largest correction ever applied in one go
@@ -164,6 +165,7 @@ GATE_LEVELS = (                       # ((nominal, stretched) clearance, stretch
     ((0.17, 0.13), STRETCH),
     ((0.15, 0.115), (0.95, 1.0, 1.15)),
     ((0.13, 0.11), (1.0, 1.1)),
+    ((0.15, 0.10), (1.0, 1.05)),      # last resort before giving a pellet up
 )
 WAIT_CLEAR = 0.13          # while waiting at the gate cell
 RECHECK_CLEAR = (0.13, 0.11)   # re-check before each action inside the ghost's cells
@@ -706,6 +708,9 @@ class Controller:
         self.big_side = []
         self.big_front = []
         self.pending_fix = False
+        self.head_buf = {}
+        self.cell_recoveries = {}
+        self.gap_hist = []          # recent bot-ghost distances
 
         # ghost timing
         self.gate = None            # (go_time, episode_end_index) once a window is chosen
@@ -785,6 +790,7 @@ class Controller:
         for name, side in (("fl", 1), ("fr", -1)):
             reading = s[name]
             if reading > 0.16:
+                self.head_buf[name] = []
                 continue
             px, py = self._sensor_pos(*SENSOR_POS[name])
             cell = cell_of(px, py)
@@ -797,11 +803,34 @@ class Controller:
             along = (px - cx) * ux + (py - cy) * uy
             if abs(along) > PITCH / 2 - 0.025:
                 continue
+            self._head_sample(name, side, px * ux + py * uy, reading, tilt)
             lat = (px - cx) * nx + (py - cy) * ny
             lat_meas = side * (WALL_FACE - reading * math.cos(tilt))
             errs.append(lat_meas - lat)
         if errs:
             self._shift(sum(errs) / len(errs), nx, ny, SIDE_GAIN, self.big_side)
+
+    def _head_sample(self, name, side, pos, reading, tilt):
+        """Heading from a side wall: the reading changes by -side*sin(true tilt) per metre
+        driven. Using only the slope makes it immune to sensor mounting offsets."""
+        buf = self.head_buf.setdefault(name, [])
+        if buf and (pos - buf[-1][0] < 0.0 or pos - buf[-1][0] > 0.02):
+            buf.clear()                       # not moving forward smoothly
+        buf.append((pos, reading, tilt))
+        if buf[-1][0] - buf[0][0] < HEAD_FIT_DIST:
+            return
+        n = len(buf)
+        mp = sum(b[0] for b in buf) / n
+        mr = sum(b[1] for b in buf) / n
+        sxx = sum((b[0] - mp) ** 2 for b in buf)
+        slope = sum((b[0] - mp) * (b[1] - mr) for b in buf) / sxx
+        res = math.sqrt(sum((b[1] - mr - slope * (b[0] - mp)) ** 2 for b in buf) / n)
+        est = sum(b[2] for b in buf) / n
+        buf.clear()
+        if res > 0.0015 or abs(slope) > 0.3:
+            return                            # not a clean straight wall
+        err = clamp(math.asin(-side * slope) - est, -0.05, 0.05)
+        self.th = wrap(self.th + HEAD_GAIN * err)
 
     def _correct_front(self, s):
         sl, sr = s["sl"], s["sr"]
@@ -825,9 +854,6 @@ class Controller:
         along_meas = face - mean * math.cos(tilt)
         err = along_meas - (px * ux + py * uy)
         self._shift(err, ux, uy, FRONT_GAIN, self.big_front)
-        if mean < 0.30:
-            th_meas = self.dir * math.pi / 2 + math.atan2(sl - sr, 0.068)
-            self.th = wrap(self.th + HEAD_GAIN * wrap(th_meas - self.th))
 
     def _relocalise(self, s, window, step, headings=(0.0,), log=True):
         """Grid search of the axle position (and small heading offsets) that best explains
@@ -1027,9 +1053,12 @@ class Controller:
         worst = 9.0
         n = len(track)
         base = (start - t0) / VDT
-        for k in stretches:
-            f = k * self.tl_scale
-            lim = need[0] if k == 1.0 else need[1]
+        # the bot can be slower than planned (learned scale x stretch) or as fast as the
+        # unscaled model (straights are often faster than the average learned scale)
+        factors = [(k * self.tl_scale, need[0] if k == 1.0 else need[1]) for k in stretches]
+        if len(stretches) > 1 and self.tl_scale > 1.0:
+            factors.append((0.95, need[1]))
+        for f, lim in factors:
             for cx, cy, i in cp:
                 j = int(base + f * i + 0.5)
                 if j < n:
@@ -1085,15 +1114,33 @@ class Controller:
         best = max(starts, key=lambda s: self._clear(cp, t0 + s, track, t0, (0.0, 0.0), (1.0,)))
         return t0 + best, None
 
-    def _plan_avoiding(self):
-        """A crossing of the ghost's cells has no safe window: route around them instead."""
-        if self.avoid_tried:
+    def _plan_avoiding(self, drop=False):
+        """A crossing of the ghost's cells has no safe window: route around them instead.
+        With drop=True (the crossing kept failing), pellets that can only be reached
+        through the ghost's cells are given up, as long as the exit stays reachable."""
+        if self.avoid_tried and not drop:
             return False
         self.avoid_tried = True
         here, h = self._here(), quadrant(self.th)
-        outside = RestrictedView(self.view, {(r, c) for r in range(N) for c in range(N)}
-                                 - self.danger)
+        free = {(r, c) for r in range(N) for c in range(N)} - self.danger
+        outside = RestrictedView(self.view, free)
         pellets = [p for p in self.pellets if p not in self.skip_pellets]
+        if drop:
+            seen, todo = {here}, [here]
+            while todo:
+                c = todo.pop()
+                for d in range(4):
+                    nb = (c[0] + DELTA[d][0], c[1] + DELTA[d][1])
+                    if nb not in seen and outside.can_move(c, d):
+                        seen.add(nb)
+                        todo.append(nb)
+            if (self.view.exit_row, N - 1) not in seen:
+                return False                  # the exit itself needs the crossing
+            lost = [p for p in pellets if p not in seen]
+            if lost:
+                self.log(f"crossing keeps failing: giving up {lost}, exiting with the rest")
+                self.skip_pellets |= set(lost)
+                pellets = [p for p in pellets if p in seen]
         states, order, cost = plan_route(outside, here, h, pellets, set())
         if states is None:
             self.log("no route around the ghost's cells")
@@ -1219,7 +1266,7 @@ class Controller:
                     nxt = self.actions[self.idx]
                     self.bad_entries.add((here, nxt[3] if nxt[0] == "run" else self.dir))
                 targets = [p for p in self.pellets if p in self.danger and p not in self.skip_pellets]
-                if not targets and self._plan_avoiding():
+                if not targets and self._plan_avoiding(drop=self.gate_escapes.get(here, 0) >= 2):
                     return False
                 if self._plan_in_and_out():
                     return False
@@ -1339,8 +1386,20 @@ class Controller:
         d = math.hypot(g[0] - bx, g[1] - by)
         if d > THREAT_R:
             return False
-        _, ox, oy = self.recent[-11]
-        return math.hypot(ox - bx, oy - by) > d + 0.002
+        return len(self.gap_hist) > 10 and self.gap_hist[0] > d + 0.002   # gap shrinking
+
+    def _plan_still_clear(self):
+        """The ghost is near: does the model say the current plan still passes it safely?"""
+        if not self.model.valid or not self.gap_hist or self.gap_hist[-1] < COMMIT_CLEAR + 0.015:
+            return False
+        acts = self.actions[max(0, self.idx - 1):self.idx + 4]
+        pts = self._virtual(acts, limit=3.0)
+        if not pts:
+            return False
+        track = self._track(self.clock, 3.0 * 1.3 * max(1.0, self.tl_scale) + 0.5)
+        clear = self._clear(self._cp(pts), self.clock, track, self.clock, (0.0, 0.0), (1.0, 1.15))
+        self.escape_t = self.clock          # do not re-check every frame
+        return clear >= COMMIT_CLEAR + 0.015
 
     # ------------------------------------------------------------- main step
     def decide(self, s):
@@ -1395,6 +1454,12 @@ class Controller:
             else:
                 self.bad_pred = 0
 
+        if g is not None:                   # bot-ghost distance history (for "closing in")
+            bx, by = self.chassis()
+            self.gap_hist.append(math.hypot(g[0] - bx, g[1] - by))
+            if len(self.gap_hist) > 12:
+                self.gap_hist.pop(0)
+
         if self.mode == "run":
             self._correct_sides(s)
             if not self.exiting:
@@ -1417,7 +1482,8 @@ class Controller:
         # ghost safety net: it should never get this close if the gate timing holds
         if (self.mode in ("run", "align", "turn", "pause", "hold", "back")
                 and not (self.mode == "run" and self.exiting and self.chassis()[0] > 3.0)
-                and self.clock - self.escape_t > 0.6 and self._ghost_close()):
+                and self.clock - self.escape_t > 0.6 and self._ghost_close()
+                and not self._plan_still_clear()):
             self.mode = "escape"          # stop this frame, decide on the next one
             self.escape_t = self.clock
             self.v = 0.0
@@ -1498,7 +1564,12 @@ class Controller:
 
     def _after_settle(self, s):
         """Called once the bot is stopped after a recovery."""
-        self._relocalise(s, 0.14, 0.02, headings=(-0.06, 0.0, 0.06))
+        n = self.cell_recoveries.get(self._here(), 0) + 1
+        self.cell_recoveries[self._here()] = n
+        if n >= 2:      # repeated trouble here: the pose may be a whole cell off
+            self._relocalise(s, 0.30, 0.03, headings=(-0.1, -0.05, 0.0, 0.05, 0.1))
+        else:
+            self._relocalise(s, 0.25, 0.025, headings=(-0.06, 0.0, 0.06))
         here = self._here()
         if self.view.in_bounds(here):
             cx, cy = cell_centre(here)
