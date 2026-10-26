@@ -91,11 +91,12 @@ BUMPER = 0.051             # forward ToF origin -> front bumper
 FRONT_AT_CENTRE = WALL_FACE - (AXLE_BACK - 0.005)   # 0.077: forward ToF with the axle on the centre
 
 # ---------------------------------------------------------------- speed profile
-SPEED_PROFILE = "normal"   # "safe" | "normal" | "fast"
+SPEED_PROFILE = "fast"     # "safe" | "normal" | "fast"  (use "normal" if you see wall hits)
 _PROFILES = {
     "safe":   dict(V_MAX=0.30, V_EXIT=0.36, ACCEL=0.8, DECEL=0.7, W_TURN=4.0, A_TURN=20.0),
     "normal": dict(V_MAX=0.36, V_EXIT=0.45, ACCEL=1.0, DECEL=0.8, W_TURN=5.0, A_TURN=25.0),
     "fast":   dict(V_MAX=0.44, V_EXIT=0.50, ACCEL=1.2, DECEL=1.0, W_TURN=6.0, A_TURN=30.0),
+    "turbo":  dict(V_MAX=0.50, V_EXIT=0.50, ACCEL=1.6, DECEL=1.3, W_TURN=7.5, A_TURN=40.0),
 }
 _P = _PROFILES[SPEED_PROFILE]
 V_MAX = _P["V_MAX"]        # m/s cruise
